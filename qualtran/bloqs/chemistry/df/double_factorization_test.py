@@ -120,7 +120,7 @@ def test_compare_cost_to_openfermion():
     diff = in_prep_diff + rot_diff + in_data_diff - diff_ctrl_z - inner_refl_diff
     qual_cost = counts[TGate()] + 4 * (refl_cost + walk_cost - diff)
     of_cost *= 4
-    of_cost += 60
+    of_cost += 60  # (7 - 4) Toffoli for swaps
     assert of_cost == qual_cost
 
 
