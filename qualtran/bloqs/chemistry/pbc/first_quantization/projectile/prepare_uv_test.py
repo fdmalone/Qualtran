@@ -28,11 +28,11 @@ def test_prep_uv_proj(bloq_autotester):
 def test_prepare_uv_t_counts():
     num_bits_p = 6
     num_bits_n = 8
-    eta = 10
-    num_atoms = 10
-    lambda_zeta = 10
-    num_bits_nuc_pos = 8
-    m_param = 2 ** (2 * num_bits_n + 3)
+    eta = 219
+    num_atoms = 216
+    lambda_zeta = eta - 2
+    num_bits_nuc_pos = 52
+    m_param = 2**41
     num_bits_m = (m_param - 1).bit_length()
     expected_cost = 3 * num_bits_n**2 + num_bits_n + 4 * num_bits_m * (num_bits_n + 1) + 4  # C4
     expected_cost += (

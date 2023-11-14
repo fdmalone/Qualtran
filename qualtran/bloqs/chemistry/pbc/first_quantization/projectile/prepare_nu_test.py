@@ -31,7 +31,7 @@ def test_prepare_mu(bloq_autotester):
 def test_prepare_nu_with_proj_t_counts():
     num_bits_p = 6
     num_bits_n = 8
-    m_param = 2 ** (2 * num_bits_n + 3)
+    m_param = 2**41
     num_bits_m = (m_param - 1).bit_length()
     # arithmetic + inequality + 3 Toffolis for flag (eq 89 + sentence immediately following it)
     expected_cost = 3 * num_bits_n**2 + num_bits_n + 4 * num_bits_m * (num_bits_n + 1) + 4
@@ -51,4 +51,5 @@ def test_prepare_nu_with_proj_t_counts():
     qual_cost += counts[TGate()]
     qual_cost //= 4
     comp_diff = 1
+    print(expected_cost - 5, qual_cost)
     assert qual_cost == expected_cost - comp_diff

@@ -53,10 +53,18 @@ class PrepareZetaState(Bloq):
     def signature(self) -> Signature:
         return Signature([Register("l", bitsize=(self.num_atoms - 1).bit_length())])
 
+    def short_name(self) -> str:
+        return r'Prep $\sqrt{\zeta_l}|l\rangle$'
+
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
         if self.adjoint:
             # Really Er(x), eq 91. In practice we will replace this with the
             # appropriate qrom call down the line.
-            return {(Toffoli(), int(np.ceil(self.lambda_zeta**0.5)))}
+            def er(zeta):
+                kt1 = 2 ** np.floor(np.log2(zeta) / 2)
+                kt2 = 2 ** np.ceil(np.log2(zeta) / 2)
+                return np.min([np.ceil(zeta / kt1) + kt1, np.ceil(zeta / kt2) + kt2])
+
+            return {(Toffoli(), int(er(self.lambda_zeta)))}
         else:
             return {(Toffoli(), self.lambda_zeta)}

@@ -24,16 +24,19 @@ def test_sel_uv_proj(bloq_autotester):
 
 def test_select_uv_t_counts():
     num_bits_p = 6
-    num_bits_n = 9
-    eta = 10
-    num_bits_nuc_pos = 18
+    num_bits_n = 8
+    eta = 219
+    num_bits_nuc_pos = 52
     expected_cost = 3 * (num_bits_p - 2) + 3 * (num_bits_n - 2)
     expected_cost += 6 * (num_bits_p + 1) + 6 * (num_bits_n + 1)
     expected_cost += 3 * num_bits_p + 3 * num_bits_n
+    print(expected_cost)
     expected_cost += 3 * (2 * num_bits_n * num_bits_nuc_pos - num_bits_n * (num_bits_n + 1) - 1)
+    print(3 * (2 * num_bits_n * num_bits_nuc_pos - num_bits_n * (num_bits_n + 1) - 1))
     sel = SelectUVFirstQuantizationWithProj(num_bits_p, num_bits_n, eta, eta, num_bits_nuc_pos)
     _, counts = sel.call_graph()
     qual_cost = counts[TGate()] // 4
     # -6 due to different cost of addition.
     qual_cost += 6
+    print(expected_cost)
     assert qual_cost == expected_cost

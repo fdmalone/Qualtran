@@ -36,7 +36,7 @@ from qualtran.bloqs.util_bloqs import ArbitraryClifford
 from qualtran.cirq_interop.t_complexity_protocol import TComplexity
 
 from .t_gate import TGate
-
+from qualtran.bloqs.basic_gates.toffoli import Toffoli
 if TYPE_CHECKING:
     from qualtran.cirq_interop import CirqQuregT
     from qualtran.resource_counting import BloqCountT, SympySymbolAllocator

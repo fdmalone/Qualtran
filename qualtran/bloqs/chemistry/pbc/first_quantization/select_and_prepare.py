@@ -28,7 +28,7 @@ from qualtran import (
     Signature,
     SoquetT,
 )
-from qualtran.bloqs.basic_gates import Toffoli
+from qualtran.bloqs.basic_gates import Hadamard, Toffoli
 from qualtran.bloqs.chemistry.pbc.first_quantization.prepare_t import PrepareTFirstQuantization
 from qualtran.bloqs.chemistry.pbc.first_quantization.prepare_uv import PrepareUVFirstQuantization
 from qualtran.bloqs.chemistry.pbc.first_quantization.select_t import SelectTFirstQuantization
@@ -105,7 +105,10 @@ class UniformSuperpostionIJFirstQuantization(Bloq):
     @cached_property
     def signature(self) -> Signature:
         n_eta = (self.eta - 1).bit_length()
-        return Signature.build(i=n_eta, j=n_eta)
+        return Signature.build(i=n_eta, j=n_eta, i_eq_j=1)
+
+    def short_name(self) -> str:
+        return r'PREP $|i\rangle|j\rangle$'
 
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
         n_eta = (self.eta - 1).bit_length()
@@ -268,7 +271,11 @@ class PrepareFirstQuantization(PrepareOracle):
 
     @cached_property
     def junk_registers(self) -> Tuple[Register, ...]:
-        return (Register("succ_nu", bitsize=1), Register("plus_t", bitsize=1))
+        return (
+            Register("succ_nu", bitsize=1),
+            Register("plus_t", bitsize=1),
+            Register("i_eq_j", bitsize=1),
+        )
 
     def short_name(self) -> str:
         return r'PREP'
@@ -278,7 +285,6 @@ class PrepareFirstQuantization(PrepareOracle):
         bb: BloqBuilder,
         tuv: SoquetT,
         uv: SoquetT,
-        plus_t: SoquetT,
         i: SoquetT,
         j: SoquetT,
         w: SoquetT,
@@ -289,8 +295,10 @@ class PrepareFirstQuantization(PrepareOracle):
         nu_y: SoquetT,
         nu_z: SoquetT,
         m: SoquetT,
-        succ_nu: SoquetT,
         l: SoquetT,
+        succ_nu: SoquetT,
+        plus_t: SoquetT,
+        i_eq_j: SoquetT,
     ) -> Dict[str, 'SoquetT']:
         tuv, uv = bb.add(
             PrepareTUVSuperpositions(
@@ -303,15 +311,16 @@ class PrepareFirstQuantization(PrepareOracle):
             tuv=tuv,
             uv=uv,
         )
-        i, j = bb.add(
+        i, j, i_eq_j = bb.add(
             UniformSuperpostionIJFirstQuantization(
                 self.eta, self.num_bits_rot_aa, adjoint=self.adjoint
             ),
             i=i,
             j=j,
+            i_eq_j=i_eq_j,
         )
         # # |+>
-        # plus_t = bb.add(Hadamard(), q=plus_t)
+        plus_t = bb.add(Hadamard(), q=plus_t)
         w, r, s = bb.add(
             PrepareTFirstQuantization(
                 self.num_bits_p, self.eta, self.num_bits_rot_aa, adjoint=self.adjoint
@@ -339,7 +348,6 @@ class PrepareFirstQuantization(PrepareOracle):
         return {
             'tuv': tuv,
             'uv': uv,
-            'plus_t': plus_t,
             'i': i,
             'j': j,
             'w': w,
@@ -352,6 +360,8 @@ class PrepareFirstQuantization(PrepareOracle):
             'm': m,
             'l': l,
             'succ_nu': succ_nu,
+            'plus_t': plus_t,
+            'i_eq_j': i_eq_j,
         }
 
 

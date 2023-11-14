@@ -159,11 +159,13 @@ class QROAMTwoRegs(Bloq):
         return Signature.build(sel=(self.data_size - 1).bit_length(), trg=self.target_bitsize)
 
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
-        cost = int(np.ceil(self.data_a_size / self.data_a_block_size))
-        cost *= int(np.ceil(self.data_b_size / self.data_b_block_size))
         if self.adjoint:
-            cost += self.data_a_block_size * self.data_b_block_size
+            cost = get_qroam_cost(
+                self.data_a_size * self.data_b_size, self.target_bitsize, adjoint=True
+            )
         else:
+            cost = int(np.ceil(self.data_a_size / self.data_a_block_size))
+            cost *= int(np.ceil(self.data_b_size / self.data_b_block_size))
             cost += self.target_bitsize * (self.data_a_block_size * self.data_b_block_size - 1)
         print("QROAM cost", cost)
         return {(Toffoli(), cost)}

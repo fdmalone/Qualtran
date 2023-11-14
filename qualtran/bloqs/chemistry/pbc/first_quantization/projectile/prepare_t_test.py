@@ -33,9 +33,9 @@ def test_prep_power_two_proj(bloq_autotester):
 
 def test_prepare_kinetic_t_proj_counts():
     num_bits_p = 6
-    num_bits_n = 8
-    eta = 10
-    b_r = 8
+    num_bits_n = 8138775
+    eta = 217
+    b_r = 7
     expected_cost = 2 * (2 * num_bits_n + 9) + 2 * (num_bits_n - num_bits_p) + 20
     qual_cost = 0
     prep = PrepareTFirstQuantizationWithProj(num_bits_p, num_bits_n, eta, num_bits_rot_aa=b_r)
@@ -47,6 +47,7 @@ def test_prepare_kinetic_t_proj_counts():
     _, counts = prep.call_graph()
     qual_cost += counts[TGate()]
     qual_cost //= 4
+    print(qual_cost)
     assert qual_cost == expected_cost
 
 

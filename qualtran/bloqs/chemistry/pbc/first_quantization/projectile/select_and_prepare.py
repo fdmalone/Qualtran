@@ -267,6 +267,7 @@ class PrepareFirstQuantizationWithProj(PrepareOracle):
         return (
             Register("succ_nu", bitsize=1),
             Register("plus_t", bitsize=1),
+            Register("i_eq_j", bitsize=1),
             Register('flags', bitsize=1, shape=(4,), side=left_right),
         )
 
@@ -279,7 +280,6 @@ class PrepareFirstQuantizationWithProj(PrepareOracle):
         tuv: SoquetT,
         tepm: SoquetT,
         uv: SoquetT,
-        plus_t: SoquetT,
         i: SoquetT,
         j: SoquetT,
         w: SoquetT,
@@ -291,8 +291,10 @@ class PrepareFirstQuantizationWithProj(PrepareOracle):
         nu_y: SoquetT,
         nu_z: SoquetT,
         m: SoquetT,
-        succ_nu: SoquetT,
         l: SoquetT,
+        succ_nu: SoquetT,
+        plus_t: SoquetT,
+        i_eq_j: SoquetT,
         flags: Optional[SoquetT] = None,
     ) -> Dict[str, 'SoquetT']:
         prep_tuv = PrepareTUVSuperpositions(
@@ -302,12 +304,13 @@ class PrepareFirstQuantizationWithProj(PrepareOracle):
             tuv, tepm, uv = bb.add(prep_tuv, tuv=tuv, tepm=tepm, uv=uv, flags=flags)
         else:
             tuv, tepm, uv, flags = bb.add(prep_tuv, tuv=tuv, tepm=tepm, uv=uv)
-        i, j = bb.add(
+        i, j, i_eq_j = bb.add(
             UniformSuperpostionIJFirstQuantization(
                 self.eta, self.num_bits_rot_aa, adjoint=self.adjoint
             ),
             i=i,
             j=j,
+            i_eq_j=i_eq_j,
         )
         # |+>
         # plus_t = bb.add(Hadamard(), q=plus_t)
@@ -345,7 +348,6 @@ class PrepareFirstQuantizationWithProj(PrepareOracle):
             'tuv': tuv,
             'tepm': tepm,
             'uv': uv,
-            'plus_t': plus_t,
             'i': i,
             'j': j,
             'w': w,
@@ -359,6 +361,8 @@ class PrepareFirstQuantizationWithProj(PrepareOracle):
             'm': m,
             'l': l,
             'succ_nu': succ_nu,
+            'plus_t': plus_t,
+            'i_eq_j': i_eq_j,
         }
         if not self.adjoint:
             out_flags['flags'] = flags

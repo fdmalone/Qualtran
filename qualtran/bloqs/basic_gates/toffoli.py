@@ -18,7 +18,7 @@ from typing import Dict, Set, Tuple, TYPE_CHECKING, Union
 from attrs import frozen
 
 from qualtran import Bloq, Register, Signature
-from qualtran.bloqs.basic_gates import TGate
+from qualtran.bloqs.basic_gates.t_gate import TGate
 from qualtran.cirq_interop.t_complexity_protocol import TComplexity
 from qualtran.resource_counting import SympySymbolAllocator
 
