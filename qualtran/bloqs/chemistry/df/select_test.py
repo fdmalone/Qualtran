@@ -13,7 +13,6 @@
 #  limitations under the License.
 
 from qualtran.bloqs.basic_gates import TGate
-from qualtran.bloqs.chemistry.df.common_bitsize import get_num_bits_lxi
 from qualtran.bloqs.chemistry.df.select import ProgRotGateArray
 
 
@@ -22,11 +21,10 @@ def test_rotations():
     num_bits_rot = 7  # decided by OF
     num_spin_orb = 10
     num_aux = 50
-    num_eig = num_spin_orb // 2
-    num_bits_lxi = get_num_bits_lxi(num_aux, num_eig, num_spin_orb)
+    num_eig = num_aux * (num_spin_orb // 2)
     rot = ProgRotGateArray(
         num_aux=num_aux,
-        num_xi=num_eig,
+        num_eig=num_eig,
         num_spin_orb=num_spin_orb,
         num_bits_rot=num_bits_rot,
         adjoint=False,
@@ -35,7 +33,7 @@ def test_rotations():
     toff = counts[TGate()] // 4
     rot = ProgRotGateArray(
         num_aux=num_aux,
-        num_xi=num_eig,
+        num_eig=num_eig,
         num_spin_orb=num_spin_orb,
         num_bits_rot=num_bits_rot,
         adjoint=True,

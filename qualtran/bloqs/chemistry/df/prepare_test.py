@@ -60,16 +60,16 @@ def test_indexed_data_t_counts():
     num_bits_rot = 1  # decided by OF
     num_spin_orb = 10
     num_aux = 50
-    num_eig = num_spin_orb // 2
+    num_eig = num_aux * (num_spin_orb // 2)
     in_l_data_l = OutputIndexedData(
-        num_aux=num_aux, num_spin_orb=num_spin_orb, num_xi=num_eig, num_bits_rot_aa=num_bits_rot
+        num_aux=num_aux, num_spin_orb=num_spin_orb, num_eig=num_eig, num_bits_rot_aa=num_bits_rot
     )
     _, counts = in_l_data_l.call_graph()
     toff = counts[TGate()] // 4
     in_l_data_l = OutputIndexedData(
         num_aux=num_aux,
         num_spin_orb=num_spin_orb,
-        num_xi=num_eig,
+        num_eig=num_eig,
         num_bits_rot_aa=num_bits_rot,
         adjoint=True,
     )
@@ -85,11 +85,11 @@ def test_inner_prepare_t_counts():
     num_bits_rot = 7  # decided by OF
     num_spin_orb = 10
     num_aux = 50
-    num_eig = num_spin_orb // 2
+    num_eig = num_aux * (num_spin_orb // 2)
     in_prep = InnerPrepareDoubleFactorization(
         num_aux=num_aux,
         num_spin_orb=num_spin_orb,
-        num_xi=num_eig,
+        num_eig=num_eig,
         num_bits_rot_aa=num_bits_rot,
         num_bits_state_prep=num_bits_state_prep,
         adjoint=False,
@@ -99,7 +99,7 @@ def test_inner_prepare_t_counts():
     in_prep = InnerPrepareDoubleFactorization(
         num_aux=num_aux,
         num_spin_orb=num_spin_orb,
-        num_xi=num_eig,
+        num_eig=num_eig,
         num_bits_rot_aa=num_bits_rot,
         num_bits_state_prep=num_bits_state_prep,
         adjoint=True,

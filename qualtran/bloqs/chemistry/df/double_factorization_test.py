@@ -34,13 +34,13 @@ def test_one_body_block_encoding(bloq_autotester):
 def test_compare_cost_one_body():
     num_spin_orb = 10
     num_aux = 50
-    num_eig = num_spin_orb // 2
+    num_eig = num_aux * num_spin_orb // 2
     num_bits_state_prep = 12
     num_bits_rot = 7
     bloq = DoubleFactorizationOneBody(
         num_spin_orb=num_spin_orb,
         num_aux=num_aux,
-        num_xi=num_eig,
+        num_eig=num_eig,
         num_bits_state_prep=num_bits_state_prep,
         num_bits_rot_aa=7,
         num_bits_rot=num_bits_rot,
@@ -60,13 +60,13 @@ def test_compare_cost_one_body():
 def test_compare_cost_one_body_decomp():
     num_spin_orb = 10
     num_aux = 50
-    num_eig = num_spin_orb // 2
+    num_eig = num_aux * num_spin_orb // 2
     num_bits_state_prep = 12
     num_bits_rot = 7
     bloq = DoubleFactorizationOneBody(
         num_spin_orb=num_spin_orb,
         num_aux=num_aux,
-        num_xi=num_eig,
+        num_eig=num_eig,
         num_bits_state_prep=num_bits_state_prep,
         num_bits_rot_aa=7,
         num_bits_rot=num_bits_rot,
@@ -79,7 +79,7 @@ def test_compare_cost_one_body_decomp():
 def test_compare_cost_to_openfermion():
     num_spin_orb = 10
     num_aux = 50
-    num_eig = num_spin_orb // 2
+    num_eig = num_aux * (num_spin_orb // 2)
     num_bits_state_prep = 12
     num_bits_rot = 7
     unused_lambda = 10
@@ -88,7 +88,7 @@ def test_compare_cost_to_openfermion():
     bloq = DoubleFactorizationBlockEncoding(
         num_spin_orb=num_spin_orb,
         num_aux=num_aux,
-        num_xi=num_eig,
+        num_eig=num_eig,
         num_bits_state_prep=num_bits_state_prep,
         num_bits_rot_aa_outer=1,
         num_bits_rot_aa_inner=7,
@@ -101,7 +101,7 @@ def test_compare_cost_to_openfermion():
         unused_lambda,
         unused_de,
         num_aux,
-        num_eig * num_aux,
+        num_eig,
         num_bits_state_prep,
         num_bits_rot,
         unused_stps,
