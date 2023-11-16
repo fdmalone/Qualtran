@@ -23,7 +23,6 @@ def test_rotations():
     num_aux = 360
     num_bits_rot = 10
     num_eig = 13031
-    num_bits_state_prep = 10
     rot = ProgRotGateArray(
         num_aux=num_aux,
         num_eig=num_eig,
@@ -67,5 +66,4 @@ def test_rotations():
     # The controlled Z operations in the middle for step 4 (e).
     of_cost = cost4ah + cost4bg + cost4df
     toff -= delta_qr + delta_qi
-    print(4 * (delta_qr + delta_qi))
     assert toff == of_cost
