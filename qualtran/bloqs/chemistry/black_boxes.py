@@ -164,8 +164,10 @@ class QROAMTwoRegs(Bloq):
                 self.data_a_size * self.data_b_size, self.target_bitsize, adjoint=True
             )
         else:
-            cost = int(np.ceil(self.data_a_size / self.data_a_block_size))
-            cost *= int(np.ceil(self.data_b_size / self.data_b_block_size))
-            cost += self.target_bitsize * (self.data_a_block_size * self.data_b_block_size - 1)
-        print("QROAM cost", cost)
+            cost = get_qroam_cost(
+                self.data_a_size * self.data_b_size, self.target_bitsize, adjoint=False
+            )
+            # cost = int(np.ceil(self.data_a_size / self.data_a_block_size))
+            # cost *= int(np.ceil(self.data_b_size / self.data_b_block_size))
+            # cost += self.target_bitsize * (self.data_a_block_size * self.data_b_block_size - 1)
         return {(Toffoli(), cost)}
