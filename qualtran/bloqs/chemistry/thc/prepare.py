@@ -259,9 +259,8 @@ class PrepareTHC(PrepareOracle):
         num_ut = len(triu_indices[0])
         flat_data = np.abs(np.concatenate([zeta[triu_indices], t_l]))
         thetas = [int(t) for t in (1 - np.sign(flat_data)) // 2]
-        alt, keep, mu = preprocess_lcu_coefficients_for_reversible_sampling(
-            flat_data, epsilon=2**-num_bits_state_prep
-        )
+        eps = 2**-num_bits_state_prep / len(flat_data)
+        alt, keep, mu = preprocess_lcu_coefficients_for_reversible_sampling(flat_data, epsilon=eps)
         num_up_t = len(triu_indices[0])
         alt_mu = []
         alt_nu = []
@@ -290,6 +289,8 @@ class PrepareTHC(PrepareOracle):
     @cached_property
     def selection_registers(self) -> Tuple[SelectionRegister, ...]:
         return (
+            Register('succ', bitsize=1),
+            Register('nu_eq_mp1', bitsize=1),
             SelectionRegister(
                 "mu", bitsize=(self.num_mu).bit_length(), iteration_length=self.num_mu + 1
             ),
@@ -299,8 +300,6 @@ class PrepareTHC(PrepareOracle):
             SelectionRegister("plus_mn", bitsize=1),
             SelectionRegister("plus_a", bitsize=1),
             SelectionRegister("plus_b", bitsize=1),
-            SelectionRegister("sigma", bitsize=self.keep_bitsize),
-            SelectionRegister("rot", bitsize=1),
         )
 
     @cached_property
@@ -308,13 +307,13 @@ class PrepareTHC(PrepareOracle):
         data_size = self.num_spin_orb // 2 + self.num_mu * (self.num_mu + 1) // 2
         alt_bitsize = max(max(self.alt_mu).bit_length(), max(self.alt_nu).bit_length())
         return (
-            Register('succ', bitsize=1),
-            Register('nu_eq_mp1', bitsize=1),
             Register('theta', bitsize=1),
             Register('s', bitsize=(data_size - 1).bit_length()),
             Register('alt_mn', bitsize=alt_bitsize, shape=(2,)),
             Register('alt_theta', bitsize=1),
             Register('keep', bitsize=self.keep_bitsize),
+            Register("sigma", bitsize=self.keep_bitsize),
+            Register("rot", bitsize=1),
             Register('less_than', bitsize=1),
             Register('extra_ctrl', bitsize=1),
         )
@@ -327,8 +326,6 @@ class PrepareTHC(PrepareOracle):
         plus_mn: SoquetT,
         plus_a: SoquetT,
         plus_b: SoquetT,
-        sigma: SoquetT,
-        rot: SoquetT,
         succ: SoquetT,
         nu_eq_mp1: SoquetT,
         theta: SoquetT,
@@ -336,6 +333,8 @@ class PrepareTHC(PrepareOracle):
         alt_mn: SoquetT,
         alt_theta: SoquetT,
         keep: SoquetT,
+        sigma: SoquetT,
+        rot: SoquetT,
         less_than: SoquetT,
         extra_ctrl: SoquetT,
     ) -> Dict[str, 'SoquetT']:
@@ -397,8 +396,6 @@ class PrepareTHC(PrepareOracle):
             'plus_mn': plus_mn,
             'plus_a': plus_a,
             'plus_b': plus_b,
-            'sigma': sigma,
-            'rot': rot,
             'succ': succ,
             'nu_eq_mp1': nu_eq_mp1,
             'theta': theta,
@@ -406,6 +403,8 @@ class PrepareTHC(PrepareOracle):
             'alt_mn': [alt_mu, alt_nu],
             'alt_theta': alt_theta,
             'keep': keep,
+            'sigma': sigma,
+            'rot': rot,
             'less_than': less_than,
             'extra_ctrl': extra_ctrl,
         }

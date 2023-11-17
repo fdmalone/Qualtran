@@ -20,12 +20,47 @@ import numpy as np
 from attrs import frozen
 
 from qualtran import Bloq, BloqBuilder, Register, SelectionRegister, Signature, SoquetT
-from qualtran.bloqs.basic_gates import CSwap, TGate, XGate
+from qualtran.bloqs.basic_gates import CSwap, Toffoli, XGate
+from qualtran.bloqs.chemistry.df.select import ApplyControlledZs
 from qualtran.bloqs.select_and_prepare import SelectOracle
-from qualtran.cirq_interop import CirqGateAsBloq
 
 if TYPE_CHECKING:
     from qualtran.resource_counting import BloqCountT, SympySymbolAllocator
+
+
+@frozen
+class Rotation(Bloq):
+
+    bitsize: int
+
+    def signature(self) -> Signature:
+        return Signature.build(theta=self.bitsize)
+
+    def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
+        rot_cost = self.bitsize - 2
+        return {(Toffoli(), rot_cost)}
+
+
+@frozen
+class QROM(Bloq):
+
+    datasizes: Tuple[int, ...]
+    bitsize: int
+    adjoint: bool = False
+    kr: int = 1
+
+    def signature(self) -> Signature:
+        return Signature.build(data=self.bitsize)
+
+    def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
+        # from listings on page 17 of Ref. [1]
+        if self.adjoint:
+            toff_cost_qrom = (
+                sum(int(np.ceil(d / ((i+1) * self.kr))) for i, d in enumerate(self.datasizes)) + self.kr
+            )
+        else:
+            toff_cost_qrom = sum(self.datasizes) - 2
+        return {(Toffoli(), toff_cost_qrom)}
 
 
 @frozen
@@ -60,10 +95,10 @@ class THCRotations(Bloq):
     num_mu: int
     num_spin_orb: int
     num_bits_theta: int
-    kr1: int = 1
-    kr2: int = 1
     two_body_only: bool = False
     adjoint: bool = False
+    kr1: int = 1
+    kr2: int = 1
 
     @cached_property
     def signature(self) -> Signature:
@@ -82,27 +117,16 @@ class THCRotations(Bloq):
 
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
         # from listings on page 17 of Ref. [1]
-        num_data_sets = self.num_mu + self.num_spin_orb // 2
-        if self.adjoint:
-            if self.two_body_only:
-                toff_cost_qrom = (
-                    int(np.ceil(self.num_mu / self.kr1))
-                    + int(np.ceil(self.num_spin_orb / (2 * self.kr1)))
-                    + self.kr1
-                )
-            else:
-                toff_cost_qrom = int(np.ceil(self.num_mu / self.kr2)) + self.kr2
-        else:
-            toff_cost_qrom = num_data_sets - 2
-            if self.two_body_only:
-                # we don't need the only body bit for the second application of the
-                # rotations for the nu register.
-                toff_cost_qrom -= self.num_spin_orb // 2
-        # xref https://github.com/quantumlib/Qualtran/issues/370, the cost below
-        # assume a phase gradient.
-        rot_cost = self.num_spin_orb * (self.num_bits_theta - 2)
-        print(rot_cost, toff_cost_qrom)
-        return {(TGate(), 4 * (rot_cost + toff_cost_qrom))}
+        datasizes = [self.num_mu, self.num_spin_orb // 2]
+        if self.two_body_only:
+            datasizes[1] = 0
+        return {
+            (
+                QROM(tuple(datasizes), self.num_bits_theta, adjoint=self.adjoint, kr=self.kr1 if self.two_body_only else self.kr2),
+                1
+            ),
+            (Rotation(self.num_bits_theta), self.num_spin_orb),
+        }
 
 
 @frozen
@@ -143,11 +167,13 @@ class SelectTHC(SelectOracle):
 
     @cached_property
     def control_registers(self) -> Tuple[Register, ...]:
-        return (Register("succ", bitsize=1), Register("nu_eq_mp1", bitsize=1))
+        return ()
 
     @cached_property
     def selection_registers(self) -> Tuple[SelectionRegister, ...]:
         return (
+            SelectionRegister("succ", bitsize=1),
+            SelectionRegister("nu_eq_mp1", bitsize=1),
             SelectionRegister(
                 "mu", bitsize=(self.num_mu).bit_length(), iteration_length=self.num_mu + 1
             ),
@@ -180,7 +206,7 @@ class SelectTHC(SelectOracle):
         sys_b: SoquetT,
     ) -> Dict[str, 'SoquetT']:
 
-        plus_b, sys_a, sys_b = bb.add(CSwap(self.num_spin_orb // 2), ctrl=plus_b, x=sys_a, y=sys_b)
+        plus_a, sys_a, sys_b = bb.add(CSwap(self.num_spin_orb // 2), ctrl=plus_a, x=sys_a, y=sys_b)
 
         # Rotations
         data = bb.allocate(self.num_bits_theta)
@@ -198,9 +224,9 @@ class SelectTHC(SelectOracle):
             trg=sys_a,
         )
         # Controlled Z_0
-        split_sys = bb.split(sys_a)
-        succ, split_sys[0] = bb.add(CirqGateAsBloq(cirq.CZ), q=[succ, split_sys[0]])
-        sys_a = bb.join(split_sys)
+        (succ,), (sys_a, sys_b) = bb.add(
+            ApplyControlledZs(1, self.num_spin_orb // 2), ctrls=(succ,), system=(sys_a, sys_b)
+        )
         # Undo rotations
         nu_eq_mp1, data, mu, sys_a = bb.add(
             THCRotations(
@@ -218,9 +244,11 @@ class SelectTHC(SelectOracle):
         )
 
         # Clean up
-        plus_b, sys_a, sys_b = bb.add(CSwap(self.num_spin_orb // 2), ctrl=plus_b, x=sys_a, y=sys_b)
+        plus_a, sys_a, sys_b = bb.add(CSwap(self.num_spin_orb // 2), ctrl=plus_a, x=sys_a, y=sys_b)
 
         plus_mn = bb.add(XGate(), q=plus_mn)
+        # should be a negative control
+        nu_eq_mp1, mu, nu = bb.add(CSwap(self.num_mu.bit_length()), ctrl=nu_eq_mp1, x=mu, y=nu)
 
         # Swap spins
         # Should be a negative control..
@@ -230,7 +258,7 @@ class SelectTHC(SelectOracle):
         plus_b, sys_a, sys_b = bb.add(CSwap(self.num_spin_orb // 2), ctrl=plus_b, x=sys_a, y=sys_b)
 
         # Rotations
-        nu_eq_mp1, data, nu, sys_a = bb.add(
+        nu_eq_mp1, data, mu, sys_a = bb.add(
             THCRotations(
                 num_mu=self.num_mu,
                 num_spin_orb=self.num_spin_orb,
@@ -241,15 +269,17 @@ class SelectTHC(SelectOracle):
             ),
             nu_eq_mp1=nu_eq_mp1,
             data=data,
-            sel=nu,
+            sel=mu,
             trg=sys_a,
         )
         # Controlled Z_0
-        split_sys = bb.split(sys_a)
-        succ, split_sys[0] = bb.add(CirqGateAsBloq(cirq.CZ), q=[succ, split_sys[0]])
-        sys_a = bb.join(split_sys)
+        (succ, nu_eq_mp1), (sys_a, sys_b) = bb.add(
+            ApplyControlledZs(2, self.num_spin_orb // 2),
+            ctrls=(succ, nu_eq_mp1),
+            system=(sys_a, sys_b),
+        )
         # Undo rotations
-        nu_eq_mp1, data, nu, sys_a = bb.add(
+        nu_eq_mp1, data, mu, sys_a = bb.add(
             THCRotations(
                 num_mu=self.num_mu,
                 num_spin_orb=self.num_spin_orb,
@@ -261,7 +291,7 @@ class SelectTHC(SelectOracle):
             ),
             nu_eq_mp1=nu_eq_mp1,
             data=data,
-            sel=nu,
+            sel=mu,
             trg=sys_a,
         )
 
