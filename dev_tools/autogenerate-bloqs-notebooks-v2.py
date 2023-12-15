@@ -384,6 +384,17 @@ OTHER: List[NotebookSpecV2] = [
         bloq_specs=[qualtran.bloqs.data_loading.qrom._QROM_DOC],
     ),
     NotebookSpecV2(
+        title='Tensor Hypercontraction',
+        module=qualtran.bloqs.chemistry.thc,
+        bloq_specs=[
+            qualtran.bloqs.chemistry.thc.prepare._THC_UNI_PREP,
+            qualtran.bloqs.chemistry.thc.prepare._THC_PREPARE,
+            qualtran.bloqs.chemistry.thc.select_bloq._THC_ROTATIONS,
+            qualtran.bloqs.chemistry.thc.select_bloq._THC_SELECT,
+        ],
+        directory=f'{SOURCE_DIR}/bloqs/chemistry/thc',
+    ),
+    NotebookSpecV2(
         title='Block Encoding',
         module=qualtran.bloqs.block_encoding,
         bloq_specs=[
