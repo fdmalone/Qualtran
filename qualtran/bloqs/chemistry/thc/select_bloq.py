@@ -352,8 +352,8 @@ class SelectTHC(SelectOracle):
             target=sys_a,
         )
         # Controlled Z_0
-        (succ,), sys_b = bb.add(
-            ApplyControlledZs(cvs=(1,), bitsize=self.num_spin_orb // 2), ctrls=(succ,), system=sys_b
+        (succ,), sys_a = bb.add(
+            ApplyControlledZs(cvs=(1,), bitsize=self.num_spin_orb // 2), ctrls=(succ,), system=sys_a
         )
         # invert the rotations
         data, sys_a = bb.add(
@@ -393,10 +393,10 @@ class SelectTHC(SelectOracle):
             target=sys_a,
         )
         # Controlled Z_0
-        (succ, nu_eq_mp1), sys_b = bb.add(
+        (succ, nu_eq_mp1), sys_a = bb.add(
             ApplyControlledZs(cvs=(1, 0), bitsize=self.num_spin_orb // 2),
             ctrls=(succ, nu_eq_mp1),
-            system=sys_b,
+            system=sys_a,
         )
         # invert the rotations
         data, sys_a = bb.add(
