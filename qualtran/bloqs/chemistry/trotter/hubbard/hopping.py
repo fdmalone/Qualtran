@@ -11,68 +11,50 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+"""Bloqs implementing unitary evolution under the one-body hopping Hamiltonian."""
 
 from functools import cached_property
-from typing import Dict
+from typing import Set
 
 from attrs import frozen
 
 from qualtran import (
     Bloq,
     bloq_example,
-    BloqBuilder,
     BloqDocSpec,
     QAny,
     Register,
     Signature,
-    SoquetT,
 )
-from qualtran.bloqs.arithmetic import SumOfSquares
-from qualtran.bloqs.chemistry.trotter.grid_ham.qvr import QuantumVariableRotation
+if TYPE_CHECKING:
+    from qualtran.resource_counting import BloqCountT, SympySymbolAllocator
 
 
 @frozen
-class Tile(Bloq):
-    r"""Bloq implementing a "tile" unitary.
+class HoppingPlaquette(Bloq):
+
+@frozen
+class HoppingTile(Bloq):
+    r"""Bloq implementing a "tile" of the one-body hopping unitary.
 
     Args:
-        num_elec: The number of electrons.
-        num_grid: The number of grid points in each of the x, y and z
-            directions. In total, for a cubic grid, there are $N = \mathrm{num\_grid}^3$
-            grid points. The number of bits required (in each spatial dimension)
-            is thus log N + 1, where the + 1 is for the sign bit.
+        length: Lattice length L.
 
     Registers:
-        system: The system register of size eta * 3 * nb
+        system: The system register of size 2 `length`.
 
     References:
-        [Faster quantum chemistry simulation on fault-tolerant quantum
-            computers](https://iopscience.iop.org/article/10.1088/1367-2630/14/11/115023/meta)
+        [Early fault-tolerant simulations of the Hubbard model](
+            https://iopscience.iop.org/article/10.1088/2058-9565/ac3110/meta)
     """
 
-    num_elec: int
-    num_grid: int
+    length: int
 
     @cached_property
     def signature(self) -> Signature:
-        return Signature(
-            [
-                Register(
-                    'system', QAny(((self.num_grid - 1).bit_length() + 1)), shape=(self.num_elec, 3)
-                )
-            ]
-        )
+        return Signature([Register('system', QAny(self.length), shape=(2,))])
 
-    def short_name(self) -> str:
-        return 'U_T(dt)'
-
-    def build_composite_bloq(self, bb: BloqBuilder, *, system: SoquetT) -> Dict[str, SoquetT]:
-        bitsize = (self.num_grid - 1).bit_length() + 1
-        for i in range(self.num_elec):
-            system[i], sos = bb.add(SumOfSquares(bitsize=bitsize, k=3), input=system[i])
-            sos = bb.add(QuantumVariableRotation(phi_bitsize=(2 * bitsize + 2)), phi=sos)
-            bb.free(sos)
-        return {'system': system}
+    def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
 
 
 @bloq_example
