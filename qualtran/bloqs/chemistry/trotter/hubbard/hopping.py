@@ -14,24 +14,31 @@
 """Bloqs implementing unitary evolution under the one-body hopping Hamiltonian."""
 
 from functools import cached_property
-from typing import Set
+from typing import Set, TYPE_CHECKING
 
 from attrs import frozen
 
-from qualtran import (
-    Bloq,
-    bloq_example,
-    BloqDocSpec,
-    QAny,
-    Register,
-    Signature,
-)
+from qualtran import Bloq, bloq_example, BloqDocSpec, QAny, QBit, Register, Signature
+from qualtran.bloqs.basic_gates.rotation import Rz
+
 if TYPE_CHECKING:
     from qualtran.resource_counting import BloqCountT, SympySymbolAllocator
 
 
 @frozen
 class HoppingPlaquette(Bloq):
+    """Plaquette operator."""
+
+    angle: float
+    eps: Union[float, sympy.Expr] = 1e-9
+
+    @cached_property
+    def signature(self) -> Signature:
+        return Signature([Register('qubits', QBit(), shape=(4,))])
+
+    def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
+        return {(FGate(1, 2), 2), (FGate(3, 4), 2), (Rz(self.angle, eps=self.eps), 2)}
+
 
 @frozen
 class HoppingTile(Bloq):
@@ -55,6 +62,7 @@ class HoppingTile(Bloq):
         return Signature([Register('system', QAny(self.length), shape=(2,))])
 
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
+        return (self.length**2 // 2, HoppingPlaquette())
 
 
 @bloq_example
