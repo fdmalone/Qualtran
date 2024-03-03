@@ -19,32 +19,16 @@ from typing import Set, TYPE_CHECKING, Union
 import sympy
 from attrs import frozen
 
-from qualtran import Bloq, bloq_example, BloqDocSpec, QAny, QBit, Register, Signature
-from qualtran.bloqs.basic_gates import FGate, Rz
+from qualtran import Bloq, bloq_example, BloqDocSpec, QAny, Register, Signature
+from qualtran.bloqs.basic_gates import Rz
 
 if TYPE_CHECKING:
     from qualtran.resource_counting import BloqCountT, SympySymbolAllocator
 
 
 @frozen
-class HoppingPlaquette(Bloq):
-    """Plaquette operator."""
-
-    angle: Union[float, sympy.Expr]
-    eps: Union[float, sympy.Expr] = 1e-9
-
-    @cached_property
-    def signature(self) -> Signature:
-        return Signature([Register('qubits', QBit(), shape=(4,))])
-
-    def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
-        # The FGate in the reference is F(k=0, n=arbitrary)
-        return {(FGate(0, 1), 4), (Rz(self.angle, eps=self.eps), 2)}
-
-
-@frozen
-class HoppingTile(Bloq):
-    r"""Bloq implementing a "tile" of the one-body hopping unitary.
+class Potential(Bloq):
+    r"""Bloq implementing the hubbard U part of the hamiltonian.
 
     Args:
         length: Lattice length L.
@@ -66,19 +50,19 @@ class HoppingTile(Bloq):
         return Signature([Register('system', QAny(self.length), shape=(2,))])
 
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
-        return (HoppingPlaquette(), self.length**2 // 2)
+        return (Rz(angle=self.angle, eps=self.eps), self.length**2 // 2)
 
 
 @bloq_example
-def _hopping_tile() -> HoppingTile:
+def _potential() -> Potential:
     length = 8
     angle = 0.5
-    kinetic_energy = HoppingTile(length, angle)
+    kinetic_energy = Potential(length, angle)
     return kinetic_energy
 
 
-_HOPPING_DOC = BloqDocSpec(
-    bloq_cls=HoppingTile,
-    import_line='from qualtran.bloqs.chemistry.trotter.hubbard.hopping import HoppingTile',
-    examples=(_hopping_tile,),
+_POTENTIAL_DOC = BloqDocSpec(
+    bloq_cls=Potential,
+    import_line='from qualtran.bloqs.chemistry.trotter.hubbard.potential import Potential',
+    examples=(_potential,),
 )
