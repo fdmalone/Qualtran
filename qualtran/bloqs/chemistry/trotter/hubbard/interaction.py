@@ -57,7 +57,7 @@ class Interaction(Bloq):
 
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
         # Page 13 paragraph 1.
-        return (Rz(angle=self.angle, eps=self.eps), self.length**2)
+        return {(Rz(angle=self.angle, eps=self.eps), self.length**2)}
 
 
 @bloq_example
