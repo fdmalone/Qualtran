@@ -29,13 +29,13 @@ class TrotterizedUnitary(Bloq):
     Given an arbitrary splitting of the Hamiltonian into $m$ terms
 
     $$
-        H = \sum_j=1^m H_j
+        H = \sum_{j=1}^m H_j
     $$
 
     then the unitary $e^{i t H}$ can be approximately implemented via Trotterization as
 
     $$
-        U \approx \prod_k=1^l \prod_j e^{i t c_k H_j}
+        U \approx \prod_{k=1}^l \prod_j e^{i t c_k H_j}
     $$
 
     where $c_j^k$ are some coefficients.
@@ -82,6 +82,7 @@ def _trott_unitary() -> TrotterizedUnitary:
     dt = 0.01
     indices = (0, 1, 0)
     coeffs = (0.5 * gamma_x, j_zz, 0.5 * gamma_x)
+    # The angles for the Trotter bloqs will be overwritten, so these are placeholder values.
     zz_bloq = IsingZZUnitary(nsites=nsites, angle=2 * dt * j_zz)
     x_bloq = IsingXUnitary(nsites=nsites, angle=0.5 * 2 * dt * gamma_x)
     trott_unitary = TrotterizedUnitary(

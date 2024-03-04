@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-"""Bloqs implementing unitary evolution under the one-body hopping Hamiltonian."""
+r"""Bloqs implementing unitary evolution under the interacting part of the Hubbard Hamiltonian."""
 
 from functools import cached_property
 from typing import Set, TYPE_CHECKING, Union
@@ -27,8 +27,14 @@ if TYPE_CHECKING:
 
 
 @frozen
-class Potential(Bloq):
+class Interaction(Bloq):
     r"""Bloq implementing the hubbard U part of the hamiltonian.
+
+    Specifically:
+    $$
+        U_I = e^{i t H_I}
+    $$
+    which can be implemented using equal angle single-qubit Z rotations.
 
     Args:
         length: Lattice length L.
@@ -38,7 +44,7 @@ class Potential(Bloq):
 
     References:
         [Early fault-tolerant simulations of the Hubbard model](
-            https://iopscience.iop.org/article/10.1088/2058-9565/ac3110/meta)
+            https://arxiv.org/abs/2012.09238) Eq. 6 page 2 and page 13 paragraph 1.
     """
 
     length: Union[int, sympy.Expr]
@@ -50,19 +56,20 @@ class Potential(Bloq):
         return Signature([Register('system', QAny(self.length), shape=(2,))])
 
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
-        return (Rz(angle=self.angle, eps=self.eps), self.length**2 // 2)
+        # Page 13 paragraph 1.
+        return (Rz(angle=self.angle, eps=self.eps), self.length**2)
 
 
 @bloq_example
-def _potential() -> Potential:
+def _interaction() -> Interaction:
     length = 8
     angle = 0.5
-    kinetic_energy = Potential(length, angle)
-    return kinetic_energy
+    interaction = Interaction(length, angle)
+    return interaction
 
 
-_POTENTIAL_DOC = BloqDocSpec(
-    bloq_cls=Potential,
-    import_line='from qualtran.bloqs.chemistry.trotter.hubbard.potential import Potential',
-    examples=(_potential,),
+_INTERACTION_DOC = BloqDocSpec(
+    bloq_cls=Interaction,
+    import_line='from qualtran.bloqs.chemistry.trotter.hubbard.interaction import Interaction',
+    examples=(_interaction,),
 )

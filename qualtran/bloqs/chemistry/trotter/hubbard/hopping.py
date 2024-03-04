@@ -11,25 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-r"""Bloqs implementing unitary evolution under the one-body hopping Hamiltonian in 2D.
-
-The hopping hamiltonian is given as 
-$$
-H_h = -\tau \sum_{\langle i, j\rangle} a_i^{\dagger} a_j + \mathrm{h.c.} 
-$$
-where the sum is over nearest neighbour lattice sites (under periodic boundary conditions).
-
-The plaquette splitting rewrites $H_h$ as a sum of $H_h^p$ and $H_h^g$ (for pink and gold 
-respectively) which when combined tile the entired lattice. Each plaquette
-contains four sites and paritions the lattice such that each edge of the lattice
-belongs to a single plaquette. Each term within a grouping commutes so that the
-unitary can be be implemented as
-$$
-e^{i H_h^{x}} = \prod_{k\sigma} e^{i H_h^{x(k,\sigma)}}
-$$
-without further trotter error.
-"""
-
+"""Bloqs implementing unitary evolution under the one-body hopping Hamiltonian in 2D."""
 from functools import cached_property
 from typing import Set, TYPE_CHECKING, Union
 
@@ -116,7 +98,7 @@ class HoppingTile(Bloq):
         tau: The Hopping hamiltonian parameter. Typically the hubbard model is
             defined relative to $\tau$ so it's defaulted to 1.
         eps: The precision of the single qubit rotations.
-        pink:
+        pink: The colour of the plaquette.
 
     Registers:
         system: The system register of size 2 `length`.
@@ -146,15 +128,17 @@ class HoppingTile(Bloq):
 
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
         # Page 5, text after Eq. 22. There are L^2 / 4 plaquettes of a given colour and x2 for spin.
-        return (HoppingPlaquette(kappa=self.tau * self.angle, eps=self.eps), self.length**2 // 2)
+        return {
+            (HoppingPlaquette(kappa=self.tau * self.angle, eps=self.eps), self.length**2 // 2)
+        }
 
 
 @bloq_example
 def _hopping_tile() -> HoppingTile:
     length = 8
     angle = 0.5
-    kinetic_energy = HoppingTile(length, angle)
-    return kinetic_energy
+    hopping_tile = HoppingTile(length, angle)
+    return hopping_tile
 
 
 _HOPPING_DOC = BloqDocSpec(
