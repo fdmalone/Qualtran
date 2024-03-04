@@ -146,3 +146,18 @@ _HOPPING_DOC = BloqDocSpec(
     import_line='from qualtran.bloqs.chemistry.trotter.hubbard.hopping import HoppingTile',
     examples=(_hopping_tile,),
 )
+
+
+@bloq_example
+def _plaquette() -> HoppingPlaquette:
+    length = 8
+    angle = 0.15
+    plaquette = HoppingPlaquette(length, angle)
+    return plaquette
+
+
+_PLAQUETTE_DOC = BloqDocSpec(
+    bloq_cls=HoppingPlaquette,
+    import_line='from qualtran.bloqs.chemistry.trotter.hubbard.hopping import HoppingPlaquette',
+    examples=(_plaquette,),
+)
