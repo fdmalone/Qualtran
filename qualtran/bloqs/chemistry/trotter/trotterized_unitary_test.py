@@ -67,8 +67,8 @@ def test_trotterized_unitary_tensor_contract_suzuki_4(nsites):
         ]
     )
     coeffs = tuple([c * gamma_x if i == 0 else c * j_zz for (i, c) in zip(indices, coeffs)])
-    ref_step = np.eye(2**nsites)
     bloqs = (IsingXUnitary(nsites=nsites, angle=0), IsingZZUnitary(nsites=nsites, angle=0))
+    ref_step = np.eye(2**nsites)
     for i, c in zip(indices, coeffs):
         ref_step = attrs.evolve(bloqs[i], angle=2 * dt * c).tensor_contract() @ ref_step
     suzuki = TrotterizedUnitary(bloqs=bloqs, indices=indices, coeffs=coeffs, timestep=dt)
