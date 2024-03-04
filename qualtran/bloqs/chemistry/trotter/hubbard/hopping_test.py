@@ -17,6 +17,6 @@ from qualtran.bloqs.chemistry.trotter.hubbard.hopping import _hopping_tile, _pla
 def test_hopping_tile(bloq_autotester):
     bloq_autotester(_hopping_tile)
 
-def test_hopping_plaquette(bloq_autotester):
-    bloq_autotester(_hopping_tile)
 
+def test_hopping_plaquette(bloq_autotester):
+    bloq_autotester(_plaquette)
