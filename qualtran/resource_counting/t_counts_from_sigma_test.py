@@ -16,7 +16,6 @@ import sympy
 
 from qualtran.bloqs.basic_gates import (
     CZPowGate,
-    FGate,
     Rx,
     Ry,
     Rz,
@@ -34,7 +33,7 @@ from qualtran.resource_counting.t_counts_from_sigma import (
 
 
 def test_all_rotation_types():
-    assert set(_get_all_rotation_types()) == {CZPowGate, Rx, Ry, Rz, XPowGate, YPowGate, ZPowGate, FGate}
+    assert set(_get_all_rotation_types()) == {CZPowGate, Rx, Ry, Rz, XPowGate, YPowGate, ZPowGate}
 
 
 def test_t_counts_from_sigma():
