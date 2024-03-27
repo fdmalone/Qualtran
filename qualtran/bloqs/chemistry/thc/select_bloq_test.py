@@ -12,16 +12,20 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from typing import Sequence
+
 import cirq
 import numpy as np
 import pytest
 import scipy.linalg
+from openfermion.ops import FermionOperator
+from openfermion.transforms import jordan_wigner, qubit_operator_to_pauli_sum
 
-from qualtran.bloqs.chemistry.thc.select_bloq import _thc_rotations, _thc_sel, find_givens_angles
+from qualtran.bloqs.chemistry.thc.select_bloq import _givens_network, _thc_sel, find_givens_angles
 
 
 def test_thc_rotations(bloq_autotester):
-    bloq_autotester(_thc_rotations)
+    bloq_autotester(_givens_network)
 
 
 def test_thc_select(bloq_autotester):
@@ -45,69 +49,29 @@ def test_interleaved_cliffords(theta):
     assert np.allclose(RYX, RYX_ref)
 
 
-def test_givens_angles_original():
-    def givens_matrix(theta, p, q, phi, norb):
-        mat = np.eye(norb, dtype=np.complex128)
-        mat[p, p] = np.cos(theta)
-        mat[p, q] = -np.exp(1j * phi) * np.sin(theta)
-        mat[q, p] = np.sin(theta)
-        mat[q, q] = np.exp(1j * phi) * np.cos(theta)
-        return mat
-
-    norb = 6
-    u = np.random.random((norb, norb))
-    u = u + u.T
-    u, _ = np.linalg.qr(u)
-    from openfermion.linalg.givens_rotations import givens_decomposition_square
-
-    decomp, diagonal = givens_decomposition_square(u)
-    D = np.diag(diagonal)
-    U = np.eye(norb)
-    for x in decomp:
-        prod_g = np.eye(norb)
-        for parallel_ops in reversed(x):
-            p, q, theta, phi = parallel_ops
-            g = givens_matrix(theta, p, q, phi, norb)
-            prod_g = prod_g @ g
-        U = prod_g @ U
-    U = D.dot(U)
-
-
 def test_givens_unitary():
-    num_orb = 4
+    num_orb = 2
     mat = np.random.random((num_orb, num_orb))
     mat = 0.5 * (mat + mat.T)
     unitary, _ = np.linalg.qr(mat)
     assert np.allclose(unitary.T @ unitary, np.eye(num_orb))
     thetas = find_givens_angles(unitary)
     qubits = cirq.LineQubit.range(num_orb)
-    from openfermion.ops import FermionOperator
-    from openfermion.transforms import jordan_wigner, qubit_operator_to_pauli_sum
 
-    def majoranas_as_paulis(p, qubits=None):
+    def majoranas_as_mats(p, qubits=None):
         a_p = FermionOperator(f'{p}')
         a_p_dag = FermionOperator(f'{p}^')
         maj_0 = a_p + a_p_dag
         maj_1 = -1j * (a_p - a_p_dag)
         return (
-            qubit_operator_to_pauli_sum(jordan_wigner(maj_0), qubits=qubits),
-            qubit_operator_to_pauli_sum(jordan_wigner(maj_1), qubits=qubits),
+            qubit_operator_to_pauli_sum(jordan_wigner(maj_0), qubits=qubits).matrix(),
+            qubit_operator_to_pauli_sum(jordan_wigner(maj_1), qubits=qubits).matrix(),
         )
 
-    g0, g1 = majoranas_as_paulis(2, qubits=qubits)
-    # assert g0.matrix().shape == (2**num_orb, 2**num_orb)
-
-    def build_vop(u, p, theta, qubits):
-        id_before = cirq.IdentityGate(qubits[p])
-        id_after = cirq.IdentityGate(qubits[p + 1])
-        RXY = scipy.linalg.expm(1j * theta * UXY.matrix())
-        return RXY
-
-    U = np.eye(2**num_orb)
+    gamma_0_0, gamma_1_0 = majoranas_as_mats(0, qubits=qubits)
     for p in range(num_orb - 1):
-        Vp = build_vop(0, p, thetas[0, p], qubits)
-        U = np.dot(U, Vp)
-
-    # Z = cirq.unitary(cirq.Circuit(cirq.Z(qubits[0]) + [cirq.IdentityGate(q) for q in qubits[1:]]))
-    # maj_0, maj_1 = zip(*[build_majoranas(p, qubits) for p in range(num_orb)])
-    # trans = U.conj().T @ Z @ U
+        gamma_0_p, gamma_1_p = majoranas_as_mats(p, qubits=qubits)
+        gamma_0_pp1, gamma_1_pp1 = majoranas_as_mats(p + 1, qubits=qubits)
+        exp_g = scipy.linalg.expm(thetas[p] * (gamma_0_p * gamma_0_pp1))
+        lhs = exp_g.conj().T @ gamma_0 @ exp_g
+        rhs = gamma_0_p
