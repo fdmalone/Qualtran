@@ -18,6 +18,7 @@ import pytest
 
 from qualtran import Adjoint
 from qualtran._infra.gate_with_registers import get_named_qubits, total_bits
+from qualtran.bloqs.block_encoding.lcu_block_encoding import LCUBlockEncoding
 from qualtran.bloqs.chemistry.ising import get_1d_ising_hamiltonian
 from qualtran.bloqs.mcmt.multi_control_multi_target_pauli import MultiControlPauli
 from qualtran.bloqs.multiplexers.select_pauli_lcu import SelectPauliLCU
@@ -54,7 +55,10 @@ def walk_operator_for_pauli_hamiltonian(ham: cirq.PauliSum, eps: float) -> Qubit
     select = SelectPauliLCU(
         total_bits(prepare.selection_registers), select_unitaries=ham_dps, target_bitsize=len(q)
     )
-    return QubitizationWalkOperator(select=select, prepare=prepare)
+    block_encoding = LCUBlockEncoding(
+        alpha=sum(ham_coeff), epsilon=1e-3, select=select, prepare=prepare
+    )
+    return QubitizationWalkOperator(block_encoding=block_encoding)
 
 
 def get_walk_operator_for_1d_ising_model(num_sites: int, eps: float) -> QubitizationWalkOperator:

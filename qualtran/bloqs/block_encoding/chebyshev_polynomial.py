@@ -86,12 +86,8 @@ class ChebyshevPolynomial(Bloq):
         # includes selection registers and any selection registers used by PREPARE
         soqs |= bb.add_d(self.block_encoding, **soqs)
 
-        def _extract_soqs(
-            to_regs: Union[Signature, Tuple[Register, ...]],
-            from_regs: Union[Signature, Tuple[Register, ...]],
-            reg_map: Dict[str, 'SoquetT'],
-        ) -> Dict[str, 'SoquetT']:
-            return {t.name: reg_map[f.name] for t, f in zip(to_regs, from_regs)}
+        def _extract_soqs(regs: Union[Signature, Tuple[Register, ...]]) -> Dict[str, 'SoquetT']:
+            return {reg.name: soqs.pop(reg.name) for reg in regs}
 
         refl_bloq = self.build_reflection_bloq()
         for iorder in range(1, self.order):

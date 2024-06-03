@@ -14,7 +14,7 @@
 r"""High level bloqs for defining bloq encodings and operations on block encodings."""
 
 from functools import cached_property
-from typing import Dict, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 import attrs
 
@@ -24,6 +24,7 @@ from qualtran import (
     BloqBuilder,
     BloqDocSpec,
     QAny,
+    QBit,
     Register,
     Signature,
     Soquet,
@@ -66,6 +67,18 @@ class BlackBoxSelect(Bloq):
 
     def pretty_name(self) -> str:
         return 'SELECT'
+
+    @cached_property
+    def control_registers(self) -> Tuple[Register, ...]:
+        return (
+            () if len(self.select.control_registers) > 0 else Register(name='control', dtype=QBit())
+        )
+
+    @cached_property
+    def selection_registers(self) -> Tuple[Register, ...]:
+        return (
+            Register(name='selection', dtype=QAny(_total_bits(self.select.selection_registers))),
+        )
 
     @cached_property
     def selection_registers(self) -> Tuple[Register, ...]:
@@ -154,6 +167,7 @@ class BlackBoxPrepare(Bloq):
     def signature(self) -> Signature:
         return Signature(
             [
+                
                 Register('selection', QAny(self.selection_bitsize)),
                 Register('junk', QAny(self.junk_bitsize)),
             ]
@@ -247,6 +261,10 @@ class LCUBlockEncoding(BlockEncoding):
     prepare: Union[BlackBoxPrepare, PrepareOracle]
 
     @cached_property
+    def control_registers(self) -> Tuple[Register, ...]:
+        return self.select.control_registers
+
+    @cached_property
     def selection_registers(self) -> Tuple[Register, ...]:
         return self.prepare.selection_registers
 
@@ -260,7 +278,14 @@ class LCUBlockEncoding(BlockEncoding):
 
     @cached_property
     def signature(self) -> Signature:
-        return Signature([*self.selection_registers, *self.junk_registers, *self.target_registers])
+        return Signature(
+            [
+                *self.control_registers,
+                *self.selection_registers,
+                *self.junk_registers,
+                *self.target_registers,
+            ]
+        )
 
     @cached_property
     def signal_state(self) -> Union[BlackBoxPrepare, PrepareOracle]:
@@ -331,6 +356,10 @@ class LCUBlockEncodingZeroState(BlockEncoding):
     prepare: Union[BlackBoxPrepare, PrepareOracle]
 
     @cached_property
+    def control_registers(self) -> Tuple[Register, ...]:
+        return self.select.control_registers
+
+    @cached_property
     def selection_registers(self) -> Tuple[Register, ...]:
         return self.prepare.selection_registers
 
@@ -344,7 +373,14 @@ class LCUBlockEncodingZeroState(BlockEncoding):
 
     @cached_property
     def signature(self) -> Signature:
-        return Signature([*self.selection_registers, *self.junk_registers, *self.target_registers])
+        return Signature(
+            [
+                *self.control_registers,
+                *self.selection_registers,
+                *self.junk_registers,
+                *self.target_registers,
+            ]
+        )
 
     @cached_property
     def signal_state(self) -> Union[BlackBoxPrepare, PrepareOracle]:
