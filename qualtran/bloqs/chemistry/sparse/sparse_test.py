@@ -21,6 +21,7 @@ from openfermion.resource_estimates.utils import power_two, QI
 
 from qualtran import Adjoint, Bloq
 from qualtran.bloqs.arithmetic.comparison import LessThanEqual
+from qualtran.bloqs.chemistry.black_boxes import QROAM
 from qualtran.bloqs.chemistry.sparse import PrepareSparse, SelectSparse
 from qualtran.bloqs.chemistry.sparse.prepare_test import build_random_test_integrals
 from qualtran.bloqs.data_loading.qroam_clean import (
@@ -85,7 +86,7 @@ def get_sel_swap_qrom_toff_count(prep: PrepareSparse) -> SymbolicInt:
     """Utility function to pick out the SelectSwapQROM cost from the prepare call graph."""
 
     def keep_qrom(bloq):
-        if isinstance(bloq, (QROAMClean, QROAMCleanAdjoint)):
+        if isinstance(bloq, (QROAMClean, QROAMCleanAdjoint, QROAM)):
             return True
         return False
 
@@ -99,6 +100,9 @@ def get_sel_swap_qrom_toff_count(prep: PrepareSparse) -> SymbolicInt:
             qrom_bloq = k
             break
         if isinstance(k, Adjoint) and isinstance(k.subbloq, QROAMClean):
+            qrom_bloq = k
+            break
+        if isinstance(k, QROAM):
             qrom_bloq = k
             break
     if qrom_bloq is None:
@@ -133,9 +137,13 @@ def test_sparse_costs_against_openfermion(num_spin_orb, num_bits_rot_aa):
     # correct for SelectSwapQROM vs QROAM
     # https://github.com/quantumlib/Qualtran/issues/574
     paper_qrom = qrom_cost(prep_sparse)
+    print(paper_qrom)
     paper_qrom += qrom_cost(prep_sparse_adj)
+    print(paper_qrom)
     qual_qrom_cost = get_sel_swap_qrom_toff_count(prep_sparse)
+    print(qual_qrom_cost)
     qual_qrom_cost += get_sel_swap_qrom_toff_count(prep_sparse_adj)
+    print(qual_qrom_cost)
     delta_qrom = qual_qrom_cost - paper_qrom
     # inequality test difference
     # https://github.com/quantumlib/Qualtran/issues/235

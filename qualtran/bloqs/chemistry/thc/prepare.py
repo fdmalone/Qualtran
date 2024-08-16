@@ -42,6 +42,7 @@ from qualtran.bloqs.arithmetic import (
 )
 from qualtran.bloqs.basic_gates import CSwap, Hadamard, Ry, Toffoli, XGate
 from qualtran.bloqs.basic_gates.on_each import OnEach
+from qualtran.bloqs.chemistry.black_boxes import QROAM
 from qualtran.bloqs.data_loading.qroam_clean import QROAMClean
 from qualtran.bloqs.mcmt import MultiControlX
 from qualtran.bloqs.reflections.reflection_using_prepare import ReflectionUsingPrepare
@@ -470,10 +471,12 @@ class PrepareTHC(PrepareOracle):
         data_size = self.num_spin_orb // 2 + self.num_mu * (self.num_mu + 1) // 2
         nd = (data_size - 1).bit_length()
         cost_2 = (ToContiguousIndex(nmu, nd), 1)
-        qroam = QROAMClean.build_from_data(
-            *(self.theta, self.alt_theta, self.alt_mu, self.alt_nu, self.keep),
-            target_bitsizes=(1, 1, nmu, nmu, self.keep_bitsize),
-        )
+        # qroam = QROAMClean.build_from_data(
+        #     *(self.theta, self.alt_theta, self.alt_mu, self.alt_nu, self.keep),
+        #     target_bitsizes=(1, 1, nmu, nmu, self.keep_bitsize),
+        # )
+        target_bitsizes = (1, 1, nmu, nmu, self.keep_bitsize)
+        qroam = QROAM(len(self.theta), sum(target_bitsizes))
         cost_3 = (qroam, 1)
         cost_4 = (OnEach(self.keep_bitsize, Hadamard()), 1)
         cost_5 = (LessThanEqual(self.keep_bitsize, self.keep_bitsize), 2)

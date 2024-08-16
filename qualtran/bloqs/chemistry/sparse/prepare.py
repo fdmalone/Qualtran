@@ -37,6 +37,7 @@ from qualtran.bloqs.arithmetic.comparison import LessThanEqual
 from qualtran.bloqs.basic_gates import CSwap, Hadamard
 from qualtran.bloqs.basic_gates.on_each import OnEach
 from qualtran.bloqs.basic_gates.z_basis import CZ, ZGate
+from qualtran.bloqs.chemistry.black_boxes import QROAM
 from qualtran.bloqs.data_loading.qroam_clean import (
     get_optimal_log_block_size_clean_ancilla,
     QROAMClean,
@@ -329,25 +330,31 @@ class PrepareSparse(PrepareOracle):
             )
         else:
             log_block_sizes = ceil(log2(self.qroam_block_size))
-        qrom = QROAMClean.build_from_data(
-            self.ind_pqrs[0],
-            self.ind_pqrs[1],
-            self.ind_pqrs[2],
-            self.ind_pqrs[3],
-            self.theta,
-            self.one_body,
-            self.alt_pqrs[0],
-            self.alt_pqrs[1],
-            self.alt_pqrs[2],
-            self.alt_pqrs[3],
-            self.alt_theta,
-            self.alt_one_body,
-            self.keep,
-            target_bitsizes=target_bitsizes,
-            log_block_sizes=log_block_sizes,
+        # qrom = QROAMClean.build_from_data(
+        #     self.ind_pqrs[0],
+        #     self.ind_pqrs[1],
+        #     self.ind_pqrs[2],
+        #     self.ind_pqrs[3],
+        #     self.theta,
+        #     self.one_body,
+        #     self.alt_pqrs[0],
+        #     self.alt_pqrs[1],
+        #     self.alt_pqrs[2],
+        #     self.alt_pqrs[3],
+        #     self.alt_theta,
+        #     self.alt_one_body,
+        #     self.keep,
+        #     target_bitsizes=target_bitsizes,
+        #     log_block_sizes=log_block_sizes,
+        # )
+        qrom = QROAM(
+            len(self.ind_pqrs[0]),
+            sum(target_bitsizes),
+            is_adjoint=self.is_adjoint,
+            qroam_block_size=2**log_block_sizes,
         )
-        if self.is_adjoint:
-            return qrom.adjoint()
+        # if self.is_adjoint:
+        #     return qrom.adjoint()
         return qrom
 
     def build_composite_bloq(
