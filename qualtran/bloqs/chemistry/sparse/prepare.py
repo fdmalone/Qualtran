@@ -37,7 +37,10 @@ from qualtran.bloqs.arithmetic.comparison import LessThanEqual
 from qualtran.bloqs.basic_gates import CSwap, Hadamard
 from qualtran.bloqs.basic_gates.on_each import OnEach
 from qualtran.bloqs.basic_gates.z_basis import CZ, ZGate
-from qualtran.bloqs.data_loading.select_swap_qrom import find_optimal_log_block_size, SelectSwapQROM
+from qualtran.bloqs.data_loading.qroam_clean import (
+    get_optimal_log_block_size_clean_ancilla,
+    QROAMClean,
+)
 from qualtran.bloqs.state_preparation.prepare_base import PrepareOracle
 from qualtran.bloqs.state_preparation.prepare_uniform_superposition import (
     PrepareUniformSuperposition,
@@ -321,10 +324,12 @@ class PrepareSparse(PrepareOracle):
             (n_n,) * 4 + (1,) * 2 + (n_n,) * 4 + (1,) * 2 + (self.num_bits_state_prep,)
         )
         if self.qroam_block_size is None:
-            log_block_sizes = find_optimal_log_block_size(self.num_non_zero, sum(target_bitsizes))
+            log_block_sizes = get_optimal_log_block_size_clean_ancilla(
+                self.num_non_zero, sum(target_bitsizes), adjoint=self.is_adjoint
+            )
         else:
             log_block_sizes = ceil(log2(self.qroam_block_size))
-        qrom = SelectSwapQROM.build_from_data(
+        qrom = QROAMClean.build_from_data(
             self.ind_pqrs[0],
             self.ind_pqrs[1],
             self.ind_pqrs[2],
@@ -340,8 +345,9 @@ class PrepareSparse(PrepareOracle):
             self.keep,
             target_bitsizes=target_bitsizes,
             log_block_sizes=log_block_sizes,
-            use_dirty_ancilla=False,
         )
+        if self.is_adjoint:
+            return qrom.adjoint()
         return qrom
 
     def build_composite_bloq(
@@ -455,15 +461,26 @@ class PrepareSparse(PrepareOracle):
         }
 
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
-        return {
-            (PrepareUniformSuperposition(self.num_non_zero), 1),
-            (self.build_qrom_bloq(), 1),
-            (OnEach(self.num_bits_state_prep, Hadamard()), 1),
-            (Hadamard(), 3),
-            (CSwap(1), 1),
-            (CSwap((self.num_spin_orb // 2 - 1).bit_length()), 4 + 4),
-            (LessThanEqual(self.num_bits_state_prep, self.num_bits_state_prep), 1),
-        }
+        if self.is_adjoint:
+            return {
+                (PrepareUniformSuperposition(self.num_non_zero), 1),
+                (self.build_qrom_bloq(), 1),
+                (OnEach(self.num_bits_state_prep, Hadamard()), 1),
+                (Hadamard(), 3),
+                (CSwap(1), 1),
+                (CSwap((self.num_spin_orb // 2 - 1).bit_length()), 4 + 4),
+                (LessThanEqual(self.num_bits_state_prep, self.num_bits_state_prep), 1),
+            }
+        else:
+            return {
+                (PrepareUniformSuperposition(self.num_non_zero).adjoint(), 1),
+                (self.build_qrom_bloq(), 1),
+                (OnEach(self.num_bits_state_prep, Hadamard()), 1),
+                (Hadamard(), 3),
+                (CSwap(1), 1),
+                (CSwap((self.num_spin_orb // 2 - 1).bit_length()), 4 + 4),
+                (LessThanEqual(self.num_bits_state_prep, self.num_bits_state_prep).adjoint(), 1),
+            }
 
 
 @bloq_example

@@ -42,7 +42,7 @@ from qualtran.bloqs.arithmetic import (
 )
 from qualtran.bloqs.basic_gates import CSwap, Hadamard, Ry, Toffoli, XGate
 from qualtran.bloqs.basic_gates.on_each import OnEach
-from qualtran.bloqs.data_loading.select_swap_qrom import SelectSwapQROM
+from qualtran.bloqs.data_loading.qroam_clean import QROAMClean
 from qualtran.bloqs.mcmt import MultiControlX
 from qualtran.bloqs.reflections.reflection_using_prepare import ReflectionUsingPrepare
 from qualtran.bloqs.state_preparation.prepare_base import PrepareOracle
@@ -269,6 +269,7 @@ class PrepareTHC(PrepareOracle):
     keep: Tuple[int, ...] = field(repr=False)
     keep_bitsize: int
     sum_of_l1_coeffs: SymbolicFloat
+    is_adjoint: bool = False
 
     @classmethod
     def from_hamiltonian_coeffs(
@@ -409,10 +410,9 @@ class PrepareTHC(PrepareOracle):
         # 2. Make contiguous register from mu and nu and store in register `s`.
         mu, nu, s = bb.add(ToContiguousIndex(log_mu, log_d), mu=mu, nu=nu, s=s)
         # 3. Load alt / keep values
-        qroam = SelectSwapQROM.build_from_data(
+        qroam = QROAMClean.build_from_data(
             *(self.theta, self.alt_theta, self.alt_mu, self.alt_nu, self.keep),
             target_bitsizes=(1, 1, log_mu, log_mu, self.keep_bitsize),
-            use_dirty_ancilla=False,
         )
         alt_mu, alt_nu = alt_mn
         s, theta, alt_theta, alt_mu, alt_nu, keep = bb.add(
@@ -470,10 +470,9 @@ class PrepareTHC(PrepareOracle):
         data_size = self.num_spin_orb // 2 + self.num_mu * (self.num_mu + 1) // 2
         nd = (data_size - 1).bit_length()
         cost_2 = (ToContiguousIndex(nmu, nd), 1)
-        qroam = SelectSwapQROM.build_from_data(
+        qroam = QROAMClean.build_from_data(
             *(self.theta, self.alt_theta, self.alt_mu, self.alt_nu, self.keep),
             target_bitsizes=(1, 1, nmu, nmu, self.keep_bitsize),
-            use_dirty_ancilla=False,
         )
         cost_3 = (qroam, 1)
         cost_4 = (OnEach(self.keep_bitsize, Hadamard()), 1)
